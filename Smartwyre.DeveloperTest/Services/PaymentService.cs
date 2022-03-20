@@ -1,15 +1,21 @@
 ﻿using Smartwyre.DeveloperTest.Data;
 using Smartwyre.DeveloperTest.Types;
-using System.Configuration;
 
 namespace Smartwyre.DeveloperTest.Services
 {
     public class PaymentService : IPaymentService
     {
+        private readonly IAccountDataStore accountDataStore;
+
+        public PaymentService(IAccountDataStore accountDataStore)
+        {
+            this.accountDataStore = accountDataStore;
+        }
+
+
         public MakePaymentResult MakePayment(MakePaymentRequest request)
         {
-            var accountDataStoreGetData = new AccountDataStore();
-            Account account = accountDataStoreGetData.GetAccount(request.DebtorAccountNumber);
+            Account account = accountDataStore.GetAccount(request.DebtorAccountNumber);
             
             var result = new MakePaymentResult();
 
@@ -23,6 +29,10 @@ namespace Smartwyre.DeveloperTest.Services
                     else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.BankToBankTransfer))
                     {
                         result.Success = false;
+                    }
+                    else
+                    {
+                        result.Success = true;
                     }
                     break;
 
@@ -39,6 +49,10 @@ namespace Smartwyre.DeveloperTest.Services
                     {
                         result.Success = false;
                     }
+                    else
+                    {
+                        result.Success = true;
+                    }
                     break;
 
                 case PaymentScheme.AutomatedPaymentSystem:
@@ -54,6 +68,10 @@ namespace Smartwyre.DeveloperTest.Services
                     {
                         result.Success = false;
                     }
+                    else
+                    {
+                        result.Success = true;
+                    }
                     break;
             }
 
@@ -61,8 +79,7 @@ namespace Smartwyre.DeveloperTest.Services
             {
                 account.Balance -= request.Amount;
 
-                var accountDataStoreUpdateData = new AccountDataStore();
-                accountDataStoreUpdateData.UpdateAccount(account);
+                accountDataStore.UpdateAccount(account);
             }
 
             return result;
