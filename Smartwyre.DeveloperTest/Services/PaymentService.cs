@@ -12,73 +12,22 @@ namespace Smartwyre.DeveloperTest.Services
             this.accountDataStore = accountDataStore;
         }
 
-
         public MakePaymentResult MakePayment(MakePaymentRequest request)
-        {
-            Account account = accountDataStore.GetAccount(request.DebtorAccountNumber);
-            
-            var result = new MakePaymentResult();
-
-            switch (request.PaymentScheme)
+        {            
+            if (string.IsNullOrWhiteSpace(request.DebtorAccountNumber))
             {
-                case PaymentScheme.BankToBankTransfer:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.BankToBankTransfer))
-                    {
-                        result.Success = false;
-                    }
-                    else
-                    {
-                        result.Success = true;
-                    }
-                    break;
-
-                case PaymentScheme.ExpeditedPayments:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.ExpeditedPayments))
-                    {
-                        result.Success = false;
-                    }
-                    else if (account.Balance < request.Amount)
-                    {
-                        result.Success = false;
-                    }
-                    else
-                    {
-                        result.Success = true;
-                    }
-                    break;
-
-                case PaymentScheme.AutomatedPaymentSystem:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.AutomatedPaymentSystem))
-                    {
-                        result.Success = false;
-                    }
-                    else if (account.Status != AccountStatus.Live)
-                    {
-                        result.Success = false;
-                    }
-                    else
-                    {
-                        result.Success = true;
-                    }
-                    break;
+                throw new InvalidPaymentRequestException(nameof(MakePaymentRequest.DebtorAccountNumber));
             }
 
+            var account = accountDataStore.GetAccount(request.DebtorAccountNumber);
+            if (account == null)
+            {
+                throw new AccountNotFoundException(request.DebtorAccountNumber);
+            }
+
+            var result = account.ExecuteDebit(request.PaymentScheme, request.Amount);
             if (result.Success)
             {
-                account.Balance -= request.Amount;
-
                 accountDataStore.UpdateAccount(account);
             }
 

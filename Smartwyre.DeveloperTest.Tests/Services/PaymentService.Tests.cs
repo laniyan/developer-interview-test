@@ -2,11 +2,12 @@ using FluentAssertions;
 using Moq;
 using Smartwyre.DeveloperTest.Data;
 using Smartwyre.DeveloperTest.Services;
+using Smartwyre.DeveloperTest.Services.PaymentValidate;
 using Smartwyre.DeveloperTest.Types;
 using System;
 using Xunit;
 
-namespace Smartwyre.DeveloperTest.Tests
+namespace Smartwyre.DeveloperTest.Tests.Services
 {
     public class PaymentServiceTests
     {
@@ -17,6 +18,29 @@ namespace Smartwyre.DeveloperTest.Tests
         public PaymentServiceTests()
         {
             paymentService = new PaymentService(mockAccountDataStore.Object);
+        }
+
+        [Fact]
+        public void ShouldFailToDebitAccountWhenDebtorAccountNumberIsEmpty()
+        {
+            // Arrange
+            var debitAmount = 100M;
+            var debitAccountBalance = debitAmount + 10;
+            var account = CreateValidAccount(balance: debitAccountBalance);
+            var request = CreateValidPaymentRequest(
+                debitAmount: debitAmount, 
+                paymentScheme: PaymentScheme.BankToBankTransfer, 
+                debtorAccountNumber: string.Empty);
+
+            mockAccountDataStore.Setup(s => s.GetAccount(It.IsAny<string>())).Returns(account);
+
+            // Act
+            Func<MakePaymentResult> action = () => paymentService.MakePayment(request);
+
+            // Assert
+            action.Should().Throw<InvalidPaymentRequestException>();
+            account.Balance.Should().Be(debitAccountBalance);
+            mockAccountDataStore.Verify(s => s.UpdateAccount(It.IsAny<Account>()), Times.Never);
         }
 
         [Fact]
@@ -51,10 +75,10 @@ namespace Smartwyre.DeveloperTest.Tests
             mockAccountDataStore.Setup(s => s.GetAccount(It.IsAny<string>())).Returns(account);
 
             // Act
-            var result = paymentService.MakePayment(request);
+            Func<MakePaymentResult> action = () => paymentService.MakePayment(request);
 
             // Assert
-            result.Success.Should().BeFalse();
+            action.Should().Throw<AccountNotFoundException>();
             account.Should().BeNull();
             mockAccountDataStore.Verify(s => s.UpdateAccount(It.IsAny<Account>()), Times.Never);
         }
@@ -113,10 +137,10 @@ namespace Smartwyre.DeveloperTest.Tests
             mockAccountDataStore.Setup(s => s.GetAccount(It.IsAny<string>())).Returns(account);
 
             // Act
-            var result = paymentService.MakePayment(request);
+            Func<MakePaymentResult> action = () => paymentService.MakePayment(request);
 
             // Assert
-            result.Success.Should().BeFalse();
+            action.Should().Throw<AccountNotFoundException>();
             account.Should().BeNull();
             mockAccountDataStore.Verify(s => s.UpdateAccount(It.IsAny<Account>()), Times.Never);
         }
@@ -195,10 +219,10 @@ namespace Smartwyre.DeveloperTest.Tests
             mockAccountDataStore.Setup(s => s.GetAccount(It.IsAny<string>())).Returns(account);
 
             // Act
-            var result = paymentService.MakePayment(request);
+            Func<MakePaymentResult> action = () => paymentService.MakePayment(request);
 
             // Assert
-            result.Success.Should().BeFalse();
+            action.Should().Throw<AccountNotFoundException>();
             account.Should().BeNull();
             mockAccountDataStore.Verify(s => s.UpdateAccount(It.IsAny<Account>()), Times.Never);
         }
@@ -254,13 +278,7 @@ namespace Smartwyre.DeveloperTest.Tests
                 | AllowedPaymentSchemes.BankToBankTransfer
                 | AllowedPaymentSchemes.AutomatedPaymentSystem)
         {
-            return new Account()
-            {
-                AccountNumber = accountNumber,
-                Balance = balance,
-                Status = status,
-                AllowedPaymentSchemes = allowedPaymentSchemes
-            };
+            return new Account(accountNumber, balance, status, allowedPaymentSchemes, new PaymentValidateFactory());
         }
 
         private static MakePaymentRequest CreateValidPaymentRequest(
