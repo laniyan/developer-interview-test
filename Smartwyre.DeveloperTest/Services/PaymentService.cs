@@ -1,59 +1,29 @@
 ﻿using Smartwyre.DeveloperTest.Data;
 using Smartwyre.DeveloperTest.Types;
-using System.Configuration;
 
 namespace Smartwyre.DeveloperTest.Services
 {
     public class PaymentService : IPaymentService
     {
-        public MakePaymentResult MakePayment(MakePaymentRequest request)
+        public MakePaymentResult MakePayment(MakePaymentRequest request, Account account)
         {
-            var accountDataStoreGetData = new AccountDataStore();
-            Account account = accountDataStoreGetData.GetAccount(request.DebtorAccountNumber);
-            
-            var result = new MakePaymentResult();
+            var result = new MakePaymentResult
+            {
+                Success = false
+            };
 
             switch (request.PaymentScheme)
             {
                 case PaymentScheme.BankToBankTransfer:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.BankToBankTransfer))
-                    {
-                        result.Success = false;
-                    }
+                    result.Success = RequestValidator(account, AllowedPaymentSchemes.BankToBankTransfer);
                     break;
 
                 case PaymentScheme.ExpeditedPayments:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.ExpeditedPayments))
-                    {
-                        result.Success = false;
-                    }
-                    else if (account.Balance < request.Amount)
-                    {
-                        result.Success = false;
-                    }
+                    result.Success = RequestValidator(account, AllowedPaymentSchemes.ExpeditedPayments) && account.Balance >= request.Amount;
                     break;
 
                 case PaymentScheme.AutomatedPaymentSystem:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.AutomatedPaymentSystem))
-                    {
-                        result.Success = false;
-                    }
-                    else if (account.Status != AccountStatus.Live)
-                    {
-                        result.Success = false;
-                    }
+                    result.Success = RequestValidator(account, AllowedPaymentSchemes.AutomatedPaymentSystem) && account.Status == AccountStatus.Live;
                     break;
             }
 
@@ -66,6 +36,11 @@ namespace Smartwyre.DeveloperTest.Services
             }
 
             return result;
+        }
+
+        private static bool RequestValidator(Account account, AllowedPaymentSchemes paymentScheme)
+        {
+            return account != null & account.AllowedPaymentSchemes.HasFlag(paymentScheme);        
         }
     }
 }

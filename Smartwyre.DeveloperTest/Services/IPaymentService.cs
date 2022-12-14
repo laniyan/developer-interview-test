@@ -4,6 +4,6 @@ namespace Smartwyre.DeveloperTest.Services
 {
     public interface IPaymentService
     {
-        MakePaymentResult MakePayment(MakePaymentRequest request);
+        MakePaymentResult MakePayment(MakePaymentRequest request, Account account);
     }
 }
