@@ -7,4 +7,10 @@ public class CalculateRebateRequest
     public string ProductIdentifier { get; set; }
 
     public decimal Volume { get; set; }
+
+    public void Deconstruct(out string productIdentifier, out string rebateIdentifier)
+    {
+        productIdentifier = ProductIdentifier;
+        rebateIdentifier = RebateIdentifier;
+    }
 }
