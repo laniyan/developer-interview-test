@@ -2,11 +2,16 @@
 
 namespace Smartwyre.DeveloperTest.Data;
 
-public class ProductDataStore
+public class ProductDataStore : IProductDataStore
 {
+    private Product Product { get; set; }
     public Product GetProduct(string productIdentifier)
     {
         // Access database to retrieve account, code removed for brevity 
-        return new Product();
+        return Product;
+    }
+    public void StoreProduct(Product p)
+    {
+        Product = p;
     }
 }

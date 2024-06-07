@@ -1,9 +1,6 @@
 ﻿namespace Smartwyre.DeveloperTest.Types;
 
-public class Rebate
+public class Rebate : RebateBase
 {
-    public string Identifier { get; set; }
-    public IncentiveType Incentive { get; set; }
-    public decimal Amount { get; set; }
     public decimal Percentage { get; set; }
 }
